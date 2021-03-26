@@ -1,5 +1,5 @@
 ﻿using MessageExchange;
-using MessageExchange.Attributes;
+using MessageExchange.RabbitMQ.Attributes;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
@@ -12,10 +12,11 @@ namespace rabbitmq.Receive
         public string OrderId { get; set; }
     }
 
+    [Consumer(Tag = "cancelOrderConsumer")]
     public class CancelOrderMessageHandler :
        IMessageHandler<CancelOrderMessage>
     {
-        public Task Handle(CancelOrderMessage request,CancellationToken cancellationToken)
+        public Task Handle(CancelOrderMessage request, CancellationToken cancellationToken)
         {
             Console.WriteLine("订单已取消：" + request.OrderId);
             return Task.CompletedTask;

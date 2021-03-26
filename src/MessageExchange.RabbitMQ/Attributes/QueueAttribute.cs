@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace MessageExchange.Attributes
+namespace MessageExchange.RabbitMQ.Attributes
 {
     public class QueueAttribute : Attribute
     {

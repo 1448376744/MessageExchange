@@ -10,7 +10,7 @@ namespace MessageExchange
 {
     public class ExchangeHostBuilder
     {
-        public ReceiveEndpointBuilder ReceiveEndpointBuilder { get; private set; } = new ReceiveEndpointBuilder();
+        public ReceiveEndpointBuilder ReceiveEndpointBuilder { get; internal set; }
 
         public JsonOptions JsonSerializerOptions { get; private set; } = new JsonOptions();
 

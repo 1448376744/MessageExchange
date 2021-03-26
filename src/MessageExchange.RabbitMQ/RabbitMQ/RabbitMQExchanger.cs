@@ -1,7 +1,7 @@
-﻿using MessageExchange.Attributes;
-using System.Text.Json;
+﻿using System.Text.Json;
 using System;
 using System.Linq;
+using MessageExchange.RabbitMQ.Attributes;
 
 namespace MessageExchange.RabbitMQ
 {
