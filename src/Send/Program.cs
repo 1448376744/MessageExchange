@@ -1,4 +1,4 @@
-﻿using MessageExchange;
+﻿using ExchangeBus;
 using Microsoft.Extensions.DependencyInjection;
 using System;
 
@@ -14,13 +14,13 @@ namespace Send
                 host.ConfigureConnectionFactory(c =>
                 {
                     c.ClientProvidedName = "rabbitmq.Send";
-                    c.HostName = "192.168.76.110";
+                    c.HostName = "172.25.251.167";
                 });
             });
             var provider = services.BuildServiceProvider();
             using (var scope = provider.CreateScope())
             {
-                var exchanger = scope.ServiceProvider.GetRequiredService<IExchanger>();
+                var exchanger = scope.ServiceProvider.GetRequiredService<IExchangerBus>();
                 var input = string.Empty;
                 do
                 {
@@ -28,7 +28,7 @@ namespace Send
                     input = Console.ReadLine();
                     if (input != "#")
                     {
-                        exchanger.Publish(new CancelOrderMessage()
+                        exchanger.Publish(new CancelOrderEvent()
                         {
                             OrderId = input
                         });

@@ -1,5 +1,6 @@
-﻿using MessageExchange;
+﻿using ExchangeBus;
 using Microsoft.Extensions.DependencyInjection;
+using rabbitmq.Receive;
 using System;
 using System.Threading.Tasks;
 
@@ -15,11 +16,12 @@ namespace Receive
                 host.ConfigureConnectionFactory(c =>
                 {
                     c.ClientProvidedName = "rabbitmq.Receive";
-                    c.HostName = "192.168.76.110";
+                    c.HostName = "172.25.251.167";
+                    c.DispatchConsumersAsync = true;
                 });
                 host.UseEndpoints(endpoints =>
                 {
-                    endpoints.MapEndpoints(System.Reflection.Assembly.GetExecutingAssembly());
+                    endpoints.MapEndpoint<CancelOrderEvent, CancelOrderEventHandler>();
                 });
             });
             var provider = services.BuildServiceProvider();

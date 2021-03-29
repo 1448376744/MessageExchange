@@ -1,5 +1,5 @@
-﻿using MessageExchange;
-using MessageExchange.RabbitMQ.Attributes;
+﻿using ExchangeBus;
+using ExchangeBus.RabbitMQ.Attributes;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -8,9 +8,7 @@ using System.Threading.Tasks;
 
 namespace Send
 {
-    [Queue(Name = "order")]
-    [Exchange(Name = "amq.fanout", Type = "fanout")]
-    public class CancelOrderMessage : IMessage
+    public class CancelOrderEvent : IIntegrationEvent
     {
         public string OrderId { get; set; }
     }
