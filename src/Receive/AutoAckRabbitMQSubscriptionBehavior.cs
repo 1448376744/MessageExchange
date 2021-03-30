@@ -9,7 +9,7 @@ namespace Receive
 {
     public class AutoAckRabbitMQSubscriptionBehavior : RabbitMQSubscriptionBehavior
     {
-        public override async Task OnExecute(RabbitMQConsumeExecuteContext context, Func<Task> next)
+        public override async Task OnExecute(RabbitMQSubscriptionExecuteContext context, Func<Task> next)
         {
             try
             {
@@ -23,7 +23,7 @@ namespace Receive
             }
         }
 
-        public override void OnExecuteing(RabbitMQConsumerExecuteingContext context)
+        public override void OnExecuteing(RabbitMQSubscriptionExecuteingContext context)
         {
             context.BasicQos(prefetchSize: 0, prefetchCount: 1, global: false);
             context.BasicConsume();

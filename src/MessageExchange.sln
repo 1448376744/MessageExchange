@@ -11,8 +11,6 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ExchangeBus", "ExchangeBus\
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ExchangeBus.RabbitMQ", "ExchangeBus.RabbitMQ\ExchangeBus.RabbitMQ.csproj", "{F7A45D7B-91C8-4BED-9C88-374173F039E0}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WebApplication1", "WebApplication1\WebApplication1.csproj", "{7D2D9A1D-CAD4-4E4D-9E56-39DD7729B7E2}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -35,10 +33,6 @@ Global
 		{F7A45D7B-91C8-4BED-9C88-374173F039E0}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F7A45D7B-91C8-4BED-9C88-374173F039E0}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F7A45D7B-91C8-4BED-9C88-374173F039E0}.Release|Any CPU.Build.0 = Release|Any CPU
-		{7D2D9A1D-CAD4-4E4D-9E56-39DD7729B7E2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{7D2D9A1D-CAD4-4E4D-9E56-39DD7729B7E2}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{7D2D9A1D-CAD4-4E4D-9E56-39DD7729B7E2}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{7D2D9A1D-CAD4-4E4D-9E56-39DD7729B7E2}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
