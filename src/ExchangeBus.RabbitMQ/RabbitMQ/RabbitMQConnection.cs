@@ -9,13 +9,25 @@ namespace ExchangeBus.RabbitMQ
 {
     public class RabbitMQConnection : IDisposable
     {
-        private bool _disposed = false;
-        
-        public IConnection Connection { get; }
-        
-        public RabbitMQConnection(IConnection connection)
+        bool _disposed = false;
+        readonly IConnection _connection;
+        readonly ConnectionFactory _factory;
+        public IConnection Connection
         {
-            Connection = connection;
+            get
+            {
+                if (_connection == null || !_connection.IsOpen)
+                {
+                    _connection?.Dispose();
+                    return _factory.CreateConnection();
+                }
+                return _connection;
+            }
+        }
+
+        public RabbitMQConnection(ConnectionFactory factory)
+        {
+            _factory = factory;
         }
 
         public void Dispose()

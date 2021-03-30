@@ -9,7 +9,7 @@ namespace Send
         static void Main(string[] args)
         {
             var services = new ServiceCollection();
-            services.AddExchangeHost(host =>
+            services.UseRabbitMQHost(host =>
             {
                 host.ConfigureConnectionFactory(c =>
                 {

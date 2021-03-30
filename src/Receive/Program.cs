@@ -11,7 +11,7 @@ namespace Receive
         static async Task Main(string[] args)
         {
             var services = new ServiceCollection();
-            services.AddExchangeHost(host =>
+            services.UseRabbitMQHost(host =>
             {
                 host.ConfigureConnectionFactory(c =>
                 {
@@ -23,13 +23,19 @@ namespace Receive
                 {
                     options.AllowTrailingCommas = true;
                 });
-                //host.UseExchanges(exchanges=> 
-                //{
-                //    exchanges.Bind<CancelOrderEvent>("dicti","ff","info");
-                //});
                 host.UseEndpoints(endpoints =>
                 {
-                    endpoints.MapEndpoint<CancelOrderEvent, CancelOrderEventHandler>();
+                    endpoints.MapEndpoints<CancelOrderEvent>(bus =>
+                    {
+                        bus.AddSubscription<CancelOrderEventHandler>();
+                        bus.AddSubscription<CancelOrderEventHandler>();
+                        bus.AddSubscriptionBehavior<AutoAckRabbitMQSubscriptionBehavior>();
+                    });
+                    endpoints.MapEndpoints<CancelOrderEvent>(bus =>
+                    {
+                        bus.AddSubscription<CancelOrderEventHandler>();
+                        bus.AddSubscription<CancelOrderEventHandler>();
+                    });
                 });
             });
             var provider = services.BuildServiceProvider();

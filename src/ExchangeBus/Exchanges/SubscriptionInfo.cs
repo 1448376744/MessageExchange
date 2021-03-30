@@ -8,26 +8,35 @@ namespace ExchangeBus
 {
     public class SubscriptionInfo
     {
+        public string EventName { get; set; }
+        public Type ConsumerType { get; set; }
         public Type EventType { get; private set; }
        
-        public Type EventHandlerType { get; private set; }
+        public List<Type> EventHandlerTypes { get; private set; }
 
-        public SubscriptionInfo(Type eventType, Type eventHandlerType)
+        public SubscriptionInfo(Type eventType, List<Type> eventHandlerTypes)
         {
             EventType = eventType;
-            EventHandlerType = eventHandlerType;
+            EventHandlerTypes = eventHandlerTypes;
+        }
+        
+        public SubscriptionInfo(Type consumerType,Type eventType, List<Type> eventHandlerTypes)
+        {
+            EventType = eventType;
+            EventHandlerTypes = eventHandlerTypes;
+            ConsumerType = consumerType;
+            EventName = eventType.Name;
         }
 
         public override bool Equals(object obj)
         {
             return obj is SubscriptionInfo info &&
-                   EqualityComparer<Type>.Default.Equals(EventType, info.EventType) &&
-                   EqualityComparer<Type>.Default.Equals(EventHandlerType, info.EventHandlerType);
+                   EventName == info.EventName;
         }
 
         public override int GetHashCode()
         {
-            return HashCode.Combine(EventType, EventHandlerType);
+            return HashCode.Combine(EventName);
         }
     }
 }

@@ -8,37 +8,44 @@ using System.Threading.Tasks;
 
 namespace ExchangeBus.RabbitMQ
 {
-    public class RabbitMQExchangeHostBuilder : ExchangeHostBuilder
+    public class RabbitMQExchangeHostBuilder
     {
-        internal JsonSerializerOptions JsonSerializerOptions;
+        readonly JsonSerializerOptions _jsonSerializerOptions = new ();
 
-        internal IEventBusSubscriptionsManager SubscriptionsManager;
-        
-        internal ConnectionFactory ConnectionFactory { get; } = new ConnectionFactory();
+        readonly RabbitMQEndpointsBuilder _rabbitMQReceiveEndpointBuilder = new ();
+
+        readonly ConnectionFactory _connectionFactory = new ();
 
         public RabbitMQExchangeHostBuilder ConfigureConnectionFactory(Action<ConnectionFactory> configure)
         {
-            configure(ConnectionFactory);
+            configure(_connectionFactory);
             return this;
         }
 
-        public RabbitMQExchangeHostBuilder UseExchanges(Action<RabbitExchangerBuilder> exchanges)
+        public RabbitMQExchangeHostBuilder ConfigureJsonSerializerOptions(Action<JsonSerializerOptions> configure)
         {
+            configure(_jsonSerializerOptions);
             return this;
         }
-
-        public override ExchangeHostBuilder ConfigureJsonSerializerOptions(Action<JsonSerializerOptions> configure)
+        
+        public void UseEndpoints(Action<RabbitMQEndpointsBuilder> eventBusSubscriptionsManager)
         {
-            configure(JsonSerializerOptions);
-            return this;
+            eventBusSubscriptionsManager(_rabbitMQReceiveEndpointBuilder);
+        }
+        
+        public IEventBusSubscriptionsManager BuildEventBusSubscriptionsManager()
+        {
+            return _rabbitMQReceiveEndpointBuilder.Build();
         }
 
-        public override ExchangeHostBuilder UseEndpoints(Action<ReceiveEndpointBuilder> endpoints)
+        public JsonSerializerOptions BuildJsonSerializerOptions()
         {
-            var builder = new ReceiveEndpointBuilder(new RabbitMQEventBusSubscriptionsManager());
-            endpoints(builder);
-            SubscriptionsManager = builder.Build();
-            return this;
+            return _jsonSerializerOptions;
+        }
+
+        public ConnectionFactory BuildConnectionFactory()
+        {
+            return _connectionFactory;
         }
     }
 }

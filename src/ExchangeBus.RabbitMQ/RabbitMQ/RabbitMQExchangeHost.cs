@@ -17,10 +17,10 @@ namespace ExchangeBus.RabbitMQ
         readonly TaskCompletionSource<int> _source = new();
         readonly IServiceProvider _provider;
         readonly IEventBusSubscriptionsManager _subscriptionsManager;
-        readonly ConcurrentDictionary<SubscriptionInfo, Delegate> _eventHandleDelegates = new();
+        readonly ConcurrentDictionary<Type, Delegate> _eventHandleDelegates = new();
         readonly JsonSerializerOptions _jsonSerializerOptions;
 
-        public RabbitMQExchangeHost(IServiceProvider provider,IEventBusSubscriptionsManager subscriptionsManager, JsonSerializerOptions jsonSerializerOptions)
+        public RabbitMQExchangeHost(IServiceProvider provider, IEventBusSubscriptionsManager subscriptionsManager, JsonSerializerOptions jsonSerializerOptions)
         {
             _provider = provider;
             _subscriptionsManager = subscriptionsManager;
@@ -29,59 +29,56 @@ namespace ExchangeBus.RabbitMQ
 
         public Task StartAsync(CancellationToken cancellationToken = default)
         {
-            foreach (var eventName in _subscriptionsManager.GetAllEventNames())
+            foreach (var subscription in _subscriptionsManager.GetAllSubscriptions())
             {
-                var channel = _provider.GetRequiredService<RabbitMQChannel>();
-                StartBasicConsume(eventName, channel);
+                StartBasicConsume(subscription);
             }
             return _source.Task;
         }
-       
-        private void StartBasicConsume(string eventName, RabbitMQChannel channel)
+
+        private void StartBasicConsume(SubscriptionInfo subscription)
         {
-            var consumer = new AsyncEventingBasicConsumer(channel.Model);
-            channel.Model.BasicQos(0, 1, false);
-            consumer.Received += Consumer_ReceivedAsync;
-            channel.Model.BasicConsume(queue: eventName, autoAck: false, consumer: consumer);
-        }
-      
-        private async Task Consumer_ReceivedAsync(object sender, BasicDeliverEventArgs @event)
-        {
-            IModel channel = sender as IModel;
-            try
+            var channel = _provider.GetRequiredService<RabbitMQChannel>();
+            ISubscriptionBehavior subscriptionBehavior = null;
+            if (subscription.ConsumerType != null)
             {
-                var handlers = _subscriptionsManager.GetHandlersForEvent(@event.RoutingKey);
-                foreach (var item in handlers)
+                subscriptionBehavior = ActivatorUtilities.CreateInstance(_provider, subscription.ConsumerType) as ISubscriptionBehavior;
+            }
+            var consumer = new AsyncEventingBasicConsumer(channel.Model);
+            consumer.Received += async (sender, eventArgs) =>
+            {
+                var model = sender as IModel;
+                foreach (var item in subscription.EventHandlerTypes)
                 {
                     using (var scope = _provider.CreateScope())
                     {
-                        var handle = CreateNotificationHandlerDelegate(scope.ServiceProvider, item) as Func<object, Task>;
-                        var request = JsonSerializer.Deserialize(@event.Body.Span, item.EventType, _jsonSerializerOptions);
-                        await handle(request);
+                        var handle = CreateNotificationHandlerDelegate(scope.ServiceProvider, subscription.EventType, item) as Func<object, Task>;
+                        var request = JsonSerializer.Deserialize(eventArgs.Body.Span, subscription.EventType, _jsonSerializerOptions);
+                        await subscriptionBehavior?.OnExecute(new RabbitMQSubscriptionExecuteContext(model, eventArgs), () => handle(request));
                     }
                 }
-                channel.BasicAck(@event.DeliveryTag, false);
-            }
-            catch
+            };
+            subscriptionBehavior?.OnExecuteing(new RabbitMQSubscriptionExecuteingContext(channel.Model, consumer, subscription.EventName));
+            if (subscriptionBehavior == null)
             {
-                channel.BasicNack(@event.DeliveryTag, false, true);
-                throw;
+                channel.Model.BasicConsume(queue: subscription.EventName, consumer: consumer);
             }
         }
+
 
         public Task StopAsync()
         {
             _source.TrySetException(new OperationCanceledException("Cancelled"));
             return _source.Task;
         }
-       
-        protected Delegate CreateNotificationHandlerDelegate(IServiceProvider provider, SubscriptionInfo subscription)
+
+        protected Delegate CreateNotificationHandlerDelegate(IServiceProvider provider, Type eventType, Type eventHandlerType)
         {
-            return _eventHandleDelegates.GetOrAdd(subscription, t =>
+            return _eventHandleDelegates.GetOrAdd(eventHandlerType, t =>
             {
-                var method = subscription.EventHandlerType.GetMethod(nameof(IIntegrationEventHandler<bool>.Handle), new Type[]
+                var method = eventHandlerType.GetMethod(nameof(IIntegrationEventHandler<bool>.Handle), new Type[]
                 {
-                    subscription.EventType,
+                    eventType,
                     typeof(CancellationToken)
                 });
                 var createInstanceMethod = typeof(ActivatorUtilities).GetMethod(nameof(ActivatorUtilities.CreateInstance), new Type[]
@@ -94,11 +91,11 @@ namespace ExchangeBus.RabbitMQ
                     null,
                     createInstanceMethod,
                     Expression.Constant(provider),
-                    Expression.Constant(subscription.EventHandlerType),
+                    Expression.Constant(eventHandlerType),
                     Expression.Constant(Array.Empty<object>()));
                 var parameter1Expression = Expression.Parameter(typeof(object), "@event");
-                var instanceOfConvertExpression = Expression.Convert(handlerInstanceExpression,subscription.EventHandlerType);
-                var eventConvertExpression = Expression.Convert(parameter1Expression, subscription.EventType);
+                var instanceOfConvertExpression = Expression.Convert(handlerInstanceExpression, eventHandlerType);
+                var eventConvertExpression = Expression.Convert(parameter1Expression, eventType);
                 var callExpression = Expression.Call(instanceOfConvertExpression, method, new Expression[]
                 {
                      eventConvertExpression
