@@ -27,50 +27,54 @@ namespace ExchangeBus.RabbitMQ
             _jsonSerializerOptions = jsonSerializerOptions;
         }
 
-
         public Task StartAsync(CancellationToken cancellationToken = default)
         {
-            using (var scope = _provider.CreateScope())
+            foreach (var eventName in _subscriptionsManager.GetAllEventNames())
             {
-                foreach (var eventName in _subscriptionsManager.GetAllEventNames())
+                var channel = _provider.GetRequiredService<RabbitMQChannel>();
+                StartBasicConsume(eventName, channel);
+            }
+            return _source.Task;
+        }
+       
+        private void StartBasicConsume(string eventName, RabbitMQChannel channel)
+        {
+            var consumer = new AsyncEventingBasicConsumer(channel.Model);
+            channel.Model.BasicQos(0, 1, false);
+            consumer.Received += Consumer_ReceivedAsync;
+            channel.Model.BasicConsume(queue: eventName, autoAck: false, consumer: consumer);
+        }
+      
+        private async Task Consumer_ReceivedAsync(object sender, BasicDeliverEventArgs @event)
+        {
+            IModel channel = sender as IModel;
+            try
+            {
+                var handlers = _subscriptionsManager.GetHandlersForEvent(@event.RoutingKey);
+                foreach (var item in handlers)
                 {
-                    var channel = scope.ServiceProvider.GetRequiredService<RabbitMQChannel>();
-                    var consumer = new AsyncEventingBasicConsumer(channel.Model);
-                    channel.Model.BasicQos(0, 1, false);
-                    consumer.Received += async (model, @event) =>
+                    using (var scope = _provider.CreateScope())
                     {
-                        try
-                        {
-                            if (cancellationToken.IsCancellationRequested)
-                            {
-                                throw new OperationCanceledException("Cancelled");
-                            }
-                            var handlers = _subscriptionsManager.GetHandlersForEvent(eventName);
-                            foreach (var item in handlers)
-                            {
-                                var handle = CreateNotificationHandlerDelegate(_provider, item)
-                                    as Func<object, CancellationToken, Task>;
-                                var request = JsonSerializer.Deserialize(@event.Body.Span, item.EventType, _jsonSerializerOptions);
-                                await handle(request, cancellationToken);
-                            }
-                            channel.Model.BasicAck(@event.DeliveryTag, false);
-                        }
-                        catch
-                        {
-                            channel.Model.BasicNack(@event.DeliveryTag, false, true);
-                            throw;
-                        }
-                    };
-                    channel.Model.BasicConsume(queue: eventName, autoAck: false, consumer: consumer);
+                        var handle = CreateNotificationHandlerDelegate(scope.ServiceProvider, item) as Func<object, Task>;
+                        var request = JsonSerializer.Deserialize(@event.Body.Span, item.EventType, _jsonSerializerOptions);
+                        await handle(request);
+                    }
                 }
-                return _source.Task;
+                channel.BasicAck(@event.DeliveryTag, false);
+            }
+            catch
+            {
+                channel.BasicNack(@event.DeliveryTag, false, true);
+                throw;
             }
         }
+
         public Task StopAsync()
         {
             _source.TrySetException(new OperationCanceledException("Cancelled"));
             return _source.Task;
         }
+       
         protected Delegate CreateNotificationHandlerDelegate(IServiceProvider provider, SubscriptionInfo subscription)
         {
             return _eventHandleDelegates.GetOrAdd(subscription, t =>
@@ -95,16 +99,13 @@ namespace ExchangeBus.RabbitMQ
                 var parameter1Expression = Expression.Parameter(typeof(object), "@event");
                 var instanceOfConvertExpression = Expression.Convert(handlerInstanceExpression,subscription.EventHandlerType);
                 var eventConvertExpression = Expression.Convert(parameter1Expression, subscription.EventType);
-                var parameter2Expression = Expression.Parameter(typeof(CancellationToken), "cancellationToken");
                 var callExpression = Expression.Call(instanceOfConvertExpression, method, new Expression[]
                 {
-                     eventConvertExpression,
-                     parameter2Expression
+                     eventConvertExpression
                 });
                 var lambda = Expression.Lambda(callExpression, new ParameterExpression[]
                 {
-                     parameter1Expression,
-                     parameter2Expression
+                     parameter1Expression
                 });
                 return lambda.Compile();
             });

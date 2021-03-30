@@ -19,6 +19,14 @@ namespace Receive
                     c.HostName = "172.25.251.167";
                     c.DispatchConsumersAsync = true;
                 });
+                host.ConfigureJsonSerializerOptions(options =>
+                {
+                    options.AllowTrailingCommas = true;
+                });
+                //host.UseExchanges(exchanges=> 
+                //{
+                //    exchanges.Bind<CancelOrderEvent>("dicti","ff","info");
+                //});
                 host.UseEndpoints(endpoints =>
                 {
                     endpoints.MapEndpoint<CancelOrderEvent, CancelOrderEventHandler>();

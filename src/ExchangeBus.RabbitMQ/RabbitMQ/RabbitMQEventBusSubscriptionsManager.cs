@@ -16,13 +16,13 @@ namespace ExchangeBus
         {
             var key = GetEntryKey<TEvent>();
             var subscription = new SubscriptionInfo(typeof(TEvent), typeof(TEventHandler));
-            if (_subscriptions.ContainsKey(key) && _subscriptions[key].Any(a=>a.EventType== typeof(TEvent)&&a.EventHandlerType== typeof(TEventHandler)))
+            if (_subscriptions.ContainsKey(key) && _subscriptions[key].Any(a => a.EventType == typeof(TEvent) && a.EventHandlerType == typeof(TEventHandler)))
             {
                 _subscriptions[key].Add(subscription);
             }
             else
             {
-                _subscriptions.Add(key,new List<SubscriptionInfo> 
+                _subscriptions.Add(key, new List<SubscriptionInfo>
                 {
                     subscription
                 });
@@ -37,7 +37,7 @@ namespace ExchangeBus
             if (_subscriptions.ContainsKey(key))
             {
                 var removeSubscription = _subscriptions[key]
-                    .Where(a=>a.EventType==typeof(TEvent)&&a.EventHandlerType== typeof(TEventHandler))
+                    .Where(a => a.EventType == typeof(TEvent) && a.EventHandlerType == typeof(TEventHandler))
                     .FirstOrDefault();
                 _subscriptions[key].Remove(removeSubscription);
             }
@@ -48,7 +48,7 @@ namespace ExchangeBus
             return typeof(TEvent).Name;
         }
 
-        public IEnumerable<SubscriptionInfo> GetHandlersForEvent(string eventName) 
+        public IEnumerable<SubscriptionInfo> GetHandlersForEvent(string eventName)
         {
             if (_subscriptions.TryGetValue(eventName, out List<SubscriptionInfo> values))
             {
@@ -59,7 +59,7 @@ namespace ExchangeBus
 
         public List<string> GetAllEventNames()
         {
-             return _subscriptions.Keys.ToList();
+            return _subscriptions.Keys.ToList();
         }
     }
 }

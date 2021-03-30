@@ -22,6 +22,11 @@ namespace ExchangeBus.RabbitMQ
             return this;
         }
 
+        public RabbitMQExchangeHostBuilder UseExchanges(Action<RabbitExchangerBuilder> exchanges)
+        {
+            return this;
+        }
+
         public override ExchangeHostBuilder ConfigureJsonSerializerOptions(Action<JsonSerializerOptions> configure)
         {
             configure(JsonSerializerOptions);
